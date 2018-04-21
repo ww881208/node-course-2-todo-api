@@ -27,6 +27,8 @@ app.listen(3000, () => {
     console.log('Server start at the port 3000.');
 })
 
+module.exports = {app};
+
 // var TodoInstance = new Todo({
 //     text: 'Cook Dinner',
 //     completed: true,
