@@ -3,15 +3,22 @@ const request = require('supertest');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {ObjectID} = require('mongodb');
 
 const todos = [{
+    _id: new ObjectID(),
     text: 'first test todo'
 }, {
+    _id: new ObjectID(),
     text: 'second test todo'
 }];
 
 // beforeEach((done) => {
 //     Todo.remove({}).then(() => done());
+// });
+
+// beforeEach((done) => {
+//     Todo.insertMany(todos).then(() => done());
 // });
 
 describe('POST /todos', () => {
@@ -67,4 +74,35 @@ describe('GET /todos', () => {
         })
         .end(done);
     });
+});
+
+describe('GET /todos/id', () => {
+    it('it should get a desired todo', (done) => {
+        request(app)
+        .get('/todos/' + '5adfdc2800273b21d24bc478')
+        .expect(200)
+        .expect((res) => {
+            expect(res.body.todo.text).toBe('first test todo');
+        })
+        .end(done);
+    });
+
+    it('it should return 404 if todo not found', (done) => {
+        request(app)
+        .get('/todos/' + '5adfdc2800273b21d24bc489')
+        .expect(404)
+        .end(done);
+    });
+
+    it('should return 404 if pass int non-objectid', (done) => {
+        request(app)
+        .get('/todos/' + '5adfdc2800273b21d24bc478a')
+        .expect(404)
+        .expect((res) => {
+            expect(res.body.todo).toExist;
+        })
+        .end(done);
+
+    });
+
 });
