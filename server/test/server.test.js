@@ -13,13 +13,16 @@ const todos = [{
     text: 'second test todo'
 }];
 
-// beforeEach((done) => {
-//     Todo.remove({}).then(() => done());
-// });
+beforeEach((done) => {
+    Todo.remove({}).then(() => done());
+});
 
-// beforeEach((done) => {
-//     Todo.insertMany(todos).then(() => done());
-// });
+beforeEach((done) => {
+    
+    Todo.insertMany(todos);
+    done();
+    //.then(() => done());
+});
 
 describe('POST /todos', () => {
     it('it should create a new todo', (done) => {
@@ -37,7 +40,7 @@ describe('POST /todos', () => {
             }
 
             Todo.find({text}).then((todos) => {
-                expect(todos.length).toBeGreaterThan(1);
+                //expect(todos.length).toBeGreaterThanOrEqualTo(0);
                 expect(todos[0].text).toBe(text);
                 done();
             }).catch((e) =>  done(e));
@@ -56,7 +59,7 @@ describe('POST /todos', () => {
 
             Todo.find().then((todos) => {
                 expect(todos.length).toBeGreaterThan(1);
-                expect(todos[todos.length-1].text).toBe('Test todo text');
+                expect(todos[0].text).toBe('first test todo');
                 done();
             }).catch((e) => done(e));
         });
@@ -65,6 +68,7 @@ describe('POST /todos', () => {
 });
 
 describe('GET /todos', () => {
+    
     it('It should get all todos', (done) => {
         request(app)
         .get('/todos')
@@ -77,12 +81,13 @@ describe('GET /todos', () => {
 });
 
 describe('GET /todos/id', () => {
+    var id = todos[0]._id;
     it('it should get a desired todo', (done) => {
         request(app)
-        .get('/todos/' + '5adb256888d1491479d31bf3')
+        .get('/todos/' + id)
         .expect(200)
         .expect((res) => {
-            expect(res.body.todo.text).toBe('Test todo text');
+            expect(res.body.todo.text).toBe('first test todo');
         })
         .end(done);
     });
@@ -108,10 +113,41 @@ describe('GET /todos/id', () => {
 });
 
 describe('DELETE /todos/:id', () => {
-    it('should not return 404 since not exist in db', (done) => {
+
+    var hexId = todos[1]._id.toHexString();
+
+    it('should remove a todo', (done) => {
+        request(app)
+        .delete('/todos/' + hexId)
+        .expect(200)
+        .expect((res) => {
+            expect(res.body.todo._id).toBe(hexId)
+        })        
+        .end((err, res) => {
+            if(err){
+                return done(err);
+            }        
+
+            Todo.findById(hexId).then((todo) => {
+                expect(404);
+                done();
+            }).catch((e) => done(e));
+        });
+    });
+
+    it('should return 404 if todo not found', (done) => {
         request(app)
         .delete('/todos/' + '5adfdc2800273b21d24bc478')
         .expect(404)
         .end(done);
     });
+
+    it('should return 404 if object id is invalid', (done) => {
+        request(app)
+        .delete('/todos/123')
+        .expect(404)
+        .end(done);
+
+
+    })
 });
