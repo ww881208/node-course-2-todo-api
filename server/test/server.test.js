@@ -79,10 +79,10 @@ describe('GET /todos', () => {
 describe('GET /todos/id', () => {
     it('it should get a desired todo', (done) => {
         request(app)
-        .get('/todos/' + '5adfdc2800273b21d24bc478')
+        .get('/todos/' + '5adb256888d1491479d31bf3')
         .expect(200)
         .expect((res) => {
-            expect(res.body.todo.text).toBe('first test todo');
+            expect(res.body.todo.text).toBe('Test todo text');
         })
         .end(done);
     });
@@ -105,4 +105,13 @@ describe('GET /todos/id', () => {
 
     });
 
+});
+
+describe('DELETE /todos/:id', () => {
+    it('should not return 404 since not exist in db', (done) => {
+        request(app)
+        .delete('/todos/' + '5adfdc2800273b21d24bc478')
+        .expect(404)
+        .end(done);
+    });
 });
