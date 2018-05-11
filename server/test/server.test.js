@@ -3,6 +3,7 @@ const request = require('supertest');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
 const {ObjectID} = require('mongodb');
 const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 
@@ -192,5 +193,91 @@ describe('PATCH /todos/:id', () =>{
             expect(res.body.todo.completedAt).toBeNull();
         })
         .end(done)
+    });
+});
+
+describe('POST /users', () => {
+
+    it('should create a user', (done) => {
+        var email = 'example@example.com';
+        var password = 'xxy123';
+        request(app)
+        .post('/users')
+        .send({email, password})
+        .expect(200)
+        .expect((res) => {
+            expect(res.headers['x-auth']).toExist;
+            expect(res.body._id).toExist;
+            expect(res.body.email).toBe(email);
+        })
+        .end((err, res) => {
+            if(err){
+                return done(err);
+            }
+
+            User.findOne({email}).then((user) => {
+                expect(user).toExist;
+                expect(user.password).not.toBe(password);
+                done();
+            }).catch((e) => done(e));
+        });
+
+    }); 
+    
+    it('should not create a user if email is in use', (done) => {
+        request(app)
+        .post('/users')
+        .send({
+            email: users[0].email,
+            password: 'qwr4321'
+        })
+        .expect(400)
+        .end(done);
+
+    });
+});
+
+describe('POST /users/login', () => {
+
+    it('should login user and return auth token', (done) => {
+        request(app)
+        .post('/users/login')
+        .send({
+            email: users[1].email,
+            password: users[1].password
+        })
+        .expect(200)
+        .expect((res) => {
+            expect(res.headers['x-auth']).toBeTruthy();
+        })
+        .end((err, res) => {
+            if(err){
+                return done(err);
+            }
+
+            User.findById(users[1]._id).then((user) => {
+                // expect(user.tokens[0]).toInclude({
+                //     access: 'auth',
+                //     token: res.headers['x-auth']
+                // });
+                expect(user.tokens[0]).toBeTruthy();
+                done();
+            }).catch((e) => { 
+                done(e);
+            });
+
+        });
+    });
+
+    it('should reject invalid login', (done) => {
+
+        request(app)
+        .post('/users/login')
+        .send({
+            email: users[1].email,
+            password: 'wrong123'
+        })
+        .expect(400)
+        .end(done);
     });
 });
