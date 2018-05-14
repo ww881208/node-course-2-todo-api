@@ -157,7 +157,7 @@ describe('DELETE /todos/:id', () => {
             }        
 
             Todo.findById(hexId).then((todo) => {
-                expect(404);
+                expect(todo).toBeFalsy();
                 done();
             }).catch((e) => done(e));
         });
@@ -176,7 +176,7 @@ describe('DELETE /todos/:id', () => {
             }        
 
             Todo.findById(hexId).then((todo) => {
-                expect(todo).toExist;
+                expect(todo).toBeTruthy();
                 done();
             }).catch((e) => done(e));
         });
@@ -249,8 +249,9 @@ describe('PATCH /todos/:id', () =>{
         })
         .expect(200)
         .expect((res) => {
+            expect(res.body.todo.text).toBeFalsy;
             expect(res.body.todo.completed).toBe(false);
-            expect(res.body.todo.completedAt).toBeNull();
+            expect(res.body.todo.completedAt).toBeFalsy();
         })
         .end(done)
     });
@@ -266,8 +267,8 @@ describe('POST /users', () => {
         .send({email, password})
         .expect(200)
         .expect((res) => {
-            expect(res.headers['x-auth']).toExist;
-            expect(res.body._id).toExist;
+            expect(res.headers['x-auth']).toBeTruthy();
+            expect(res.body._id).toBeTruthy();
             expect(res.body.email).toBe(email);
         })
         .end((err, res) => {
@@ -283,6 +284,17 @@ describe('POST /users', () => {
         });
 
     }); 
+
+    it('should return validation errors if request invalid', (done) => {
+        request(app)
+        .post('/users')
+        .send({
+            email: users[0].email,
+            password: 'Password123'
+        })
+        .expect(400)
+        .end(done);
+    });
     
     it('should not create a user if email is in use', (done) => {
         request(app)
@@ -316,10 +328,10 @@ describe('POST /users/login', () => {
             }
 
             User.findById(users[1]._id).then((user) => {
-                // expect(user.tokens[1]).toInclude({
-                //     access: 'auth',
-                //     token: res.headers['x-auth']
-                // });
+                expect(user.toObject().tokens[1]).toMatchObject({
+                    access: 'auth',
+                    token: res.headers['x-auth']
+                });
                 //expect(user.tokens[0]).toBeTruthy();
                 expect({token: user.tokens[1].token}).toBeTruthy();
                 expect({access: 'auth'}).toBeTruthy();
@@ -340,7 +352,7 @@ describe('POST /users/login', () => {
         })
         .expect(400)
         .expect((res) => {
-            expect(res.headers['x-auth']).toNotExist;
+            expect(res.headers['x-auth']).toBeFalsy();
             done();
         })
         .end((err, res) => {
@@ -381,5 +393,29 @@ describe('DELETE /users/me/token', () => {
                 done(e);
             });  
         });
+    });
+});
+
+describe('GET /users/me', () => {
+    it('should return user if authenticated', (done) => {
+        request(app)
+        .get('/users/me')
+        .set('x-auth', users[0].tokens[0].token)
+        .expect(200)
+        .expect((res) => {
+            expect(res.body._id).toBe(users[0]._id.toHexString());
+            expect(res.body.email).toBe(users[0].email);
+        })
+        .end(done);
+    });
+
+    it('should return 401 if not authenticated', (done) => {
+        request(app)
+        .get('/users/me')
+        .expect(401)
+        .expect((res) => {
+            expect(res.body).toEqual({});
+        })
+        .end(done);
     });
 });
